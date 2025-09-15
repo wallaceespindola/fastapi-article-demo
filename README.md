@@ -8,6 +8,7 @@
 [![SQLModel](https://img.shields.io/badge/ORM-SQLModel-teal)](https://sqlmodel.tiangolo.com/)
 [![Pytest](https://img.shields.io/badge/Testing-Pytest-green)](https://pytest.org/)
 [![CI](https://github.com/wallaceespindola/fastapi-article-demo/actions/workflows/ci.yml/badge.svg)](https://github.com/wallaceespindola/fastapi-article-demo/actions/workflows/ci.yml)
+[![uv](https://img.shields.io/badge/Package%20Manager-uv-blueviolet)](https://github.com/astral-sh/uv)
 
 This project demonstrates the practical implementation of the concepts covered in the article **"FastAPI in Action: Modern and Asynchronous API Development"**. It showcases best practices for building high-performance, type-safe, and maintainable APIs with FastAPI.
 
@@ -19,6 +20,7 @@ This project demonstrates the practical implementation of the concepts covered i
 - **Background Tasks** - Asynchronous task processing
 - **Comprehensive Testing** - Unit tests for all endpoints
 - **API Documentation** - Auto-generated Swagger and ReDoc documentation
+- **Modern Development Tools** - Using uv for ultra-fast package management
 
 ## Project Structure
 
@@ -48,35 +50,82 @@ fastapi-article-demo/
 
 ## Installation
 
-1. Clone the repository:
+### Prerequisites
+
+1. Install uv (fast Python package installer and resolver):
+   ```bash
+   pip install uv
+   ```
+
+2. Clone the repository:
    ```bash
    git clone https://github.com/wallaceespindola/fastapi-article-demo.git
    cd fastapi-article-demo
    ```
 
-2. Create and activate a virtual environment:
+3. Create a virtual environment using uv:
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows, use: venv\Scripts\activate
+   uv venv
+   source .venv/bin/activate  # On Windows, use: .venv\Scripts\activate
    ```
 
-3. Install dependencies:
+4. Install dependencies using uv:
    ```bash
-   pip install -r requirements.txt
-   # or for development:
-   pip install -e .
+   # Install all dependencies including development tools
+   uv pip install -e ".[dev]"
+
+   # For production only dependencies
+   uv pip install -e .
    ```
 
-4. Install additional required packages:
-   ```bash
-   pip install python-multipart
-   ```
+## Development Commands
+
+This project includes a Makefile with convenient commands for development tasks:
+
+```bash
+# Show available commands
+make help
+
+# Install dependencies
+make install
+
+# Run the application with hot-reload
+make run
+
+# Run tests
+make test
+
+# Run linting
+make lint
+
+# Format code
+make format
+
+# Type checking
+make typecheck
+
+# Run all checks (lint and typecheck)
+make check
+
+# Lock dependencies
+make lock
+
+# Clean temporary files
+make clean
+
+# Setup pre-commit hooks
+make pre-commit-install
+```
 
 ## Usage
 
 1. Start the FastAPI server:
    ```bash
-   uvicorn app.main:app --reload
+   # Using the Makefile
+   make run
+
+   # Or directly
+   uv run uvicorn app.main:app --reload
    ```
 
 2. Open your browser and navigate to:
@@ -128,8 +177,21 @@ curl -X POST "http://localhost:8000/items/" \
 Run the test suite:
 
 ```bash
-pytest
+# Using the Makefile
+make test
+
+# Or directly
+uv run pytest
 ```
+
+## Why uv?
+
+This project uses [uv](https://github.com/astral-sh/uv) as the package manager, which offers several advantages:
+
+- **Ultra-fast package installation** - Up to 10-100x faster than pip
+- **Better dependency resolution** - Handles complex dependency trees more reliably
+- **Lockfile support** - For reproducible builds across environments
+- **Compatible with pip** - Works with existing pyproject.toml files
 
 ## Author
 

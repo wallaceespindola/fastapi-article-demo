@@ -1,4 +1,3 @@
-
 # FastAPI Article Project — Makefile (uv-based)
 .PHONY: help venv install run test lint format typecheck check lock clean pre-commit-install pre-commit-run pre-commit-autoupdate
 

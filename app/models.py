@@ -1,15 +1,21 @@
-from sqlmodel import SQLModel, Field
-from typing import Optional
+from typing import TypeVar
 
-class User(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+from sqlmodel import Field, SQLModel
+
+# Create a type variable for SQLModel
+T = TypeVar("T", bound="SQLModel")
+
+
+class User(SQLModel, table=True):  # type: ignore[call-arg]
+    id: int | None = Field(default=None, primary_key=True)
     name: str
     email: str
     password: str
 
-class Item(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+
+class Item(SQLModel, table=True):  # type: ignore[call-arg]
+    id: int | None = Field(default=None, primary_key=True)
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     price: float
-    tax: Optional[float] = None
+    tax: float | None = None
