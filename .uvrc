@@ -1,0 +1,5 @@
+[uv]
+# Use lockfile for deterministic installations
+use_lockfile = true
+# Enable trusted mode for faster installs
+trusted_host = ["pypi.org", "files.pythonhosted.org"]
