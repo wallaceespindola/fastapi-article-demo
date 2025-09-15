@@ -390,6 +390,6 @@ Wallace Espindola is a Senior Software Engineer and Solution Architect specializ
 
 - [GitHub](https://github.com/wallaceespindola)
 - [LinkedIn](https://www.linkedin.com/in/wallaceespindola/)
-- [Presentation Slides](https://speakerdeck.com/wallacese)
+- [Slides](https://speakerdeck.com/wallacese)
 
 Follow for more tech insights and tutorials!
