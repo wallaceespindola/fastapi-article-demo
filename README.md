@@ -2,7 +2,7 @@
 
 # FastAPI Article Demo
 
-[![Apache 2.0 License](https://img.shields.io/badge/License-Apache2.0-orange)](LICENSE)
+[![MIT License](https://img.shields.io/badge/License-MIT-lightblue)](LICENSE)
 [![Python](https://img.shields.io/badge/Built_with-Python-blue)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/Framework-FastAPI-009688)](https://fastapi.tiangolo.com/)
 [![SQLModel](https://img.shields.io/badge/ORM-SQLModel-teal)](https://sqlmodel.tiangolo.com/)
@@ -42,7 +42,7 @@ fastapi-article-demo/
 │   ├── __init__.py
 │   └── test_main.py          # Main application tests
 ├── FastAPI_in_Action.md      # The accompanying article
-├── LICENSE                   # Apache 2.0 license
+├── LICENSE                   # MIT license
 ├── Makefile                  # Build and test commands
 ├── README.md                 # This file
 └── pyproject.toml            # Project dependencies and metadata
@@ -207,6 +207,6 @@ This project uses [uv](https://github.com/astral-sh/uv) as the package manager, 
 
 ## License
 
-This project is released under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
+This project is released under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 Copyright © 2025 [Wallace Espindola](https://github.com/wallaceespindola/).
