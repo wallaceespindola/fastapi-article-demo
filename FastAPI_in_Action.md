@@ -70,15 +70,14 @@ WebSockets in Starlette mean you can build chat apps, dashboards, or streaming p
 
 ## Practical Code Examples
 
-### 1. Async CRUD with Database Integration
+The following examples are taken from a complete FastAPI project that demonstrates all the concepts covered in this article. You can find the full implementation at [FastAPI Article Demo](https://github.com/wallaceespindola/fastapi-article-demo).
+
+### 1. Data Models with SQLModel
 
 ```python
-from fastapi import FastAPI, HTTPException
-from sqlmodel import SQLModel, Field, create_engine, Session, select
+# app/models.py
 from typing import Optional
-
-app = FastAPI()
-
+from sqlmodel import SQLModel, Field
 
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -86,64 +85,100 @@ class User(SQLModel, table=True):
     email: str
     password: str
 
-
-# Database configuration
-sqlite_url = "sqlite:///./test.db"
-engine = create_engine(sqlite_url, echo=True, connect_args={"check_same_thread": False})
-
-
-@app.on_event("startup")
-def on_startup():
-    SQLModel.metadata.create_all(engine)
-
-
-@app.post("/users/", response_model=User)
-def create_user(user: User):
-    with Session(engine) as session:
-        session.add(user)
-        session.commit()
-        session.refresh(user)
-        return user
-
-
-@app.get("/users/{user_id}", response_model=User)
-def read_user(user_id: int):
-    with Session(engine) as session:
-        user = session.get(User, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        return user
+class Item(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    description: Optional[str] = None
+    price: float
+    tax: Optional[float] = None
 ```
 
-### 2. Authentication with OAuth2 and JWT
+### 2. Database Configuration
 
 ```python
-from fastapi import Depends, FastAPI, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+# app/database.py
+import os
+from collections.abc import Generator
+from dotenv import load_dotenv
+from sqlmodel import Session, SQLModel, create_engine
+
+# Load environment variables
+load_dotenv()
+
+# Database URL from environment variable
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
+engine = create_engine(DATABASE_URL, echo=True, connect_args={"check_same_thread": False})
+
+def create_tables() -> None:
+    SQLModel.metadata.create_all(engine)
+
+def get_session() -> Generator[Session, None, None]:
+    with Session(engine) as session:
+        yield session
+```
+
+### 3. Authentication with OAuth2 and JWT
+
+```python
+# app/auth.py
+import os
+from datetime import datetime, timedelta, timezone
+from typing import Any, cast
+from dotenv import load_dotenv
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from datetime import datetime, timedelta
 from passlib.context import CryptContext
+from sqlmodel import Session, select
+from app.database import get_session
+from app.models import User
 
-# Security configuration
-SECRET_KEY = "your-secret-key-should-be-kept-secure"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+# Load environment variables
+load_dotenv()
 
-# Password hashing
+# Security constants from environment variables
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY environment variable is required")
+
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-app = FastAPI()
+# Define dependencies at module level to avoid B008 linting errors
+token_dependency = Depends(oauth2_scheme)
+db_session = Depends(get_session)
 
-# Function to create access token
-def create_access_token(data: dict, expires_delta: timedelta = None):
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    result = pwd_context.verify(plain_password, hashed_password)
+    return cast(bool, result)
+
+def get_password_hash(password: str) -> str:
+    result = pwd_context.hash(password)
+    return cast(str, result)
+
+async def authenticate_user(email: str, password: str, session: Session) -> User | None:
+    statement = select(User).where(User.email == email)
+    user = session.exec(statement).first()
+    if not user:
+        return None
+    if not verify_password(password, user.password):
+        return None
+    return cast(User, user)
+
+def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return cast(str, encoded_jwt)
 
-# Get current user from token
-def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(token: str = token_dependency, session: Session = db_session) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -151,46 +186,98 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        sub_claim = payload.get("sub")
+        if sub_claim is None:
             raise credentials_exception
-        return username
-    except JWTError:
+        email: str = cast(str, sub_claim)
+    except JWTError as e:
+        raise credentials_exception from e
+
+    statement = select(User).where(User.email == email)
+    user = session.exec(statement).first()
+    if user is None:
         raise credentials_exception
-
-# Token endpoint
-@app.post("/token")
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    # Authenticate user (simplified example)
-    if form_data.username != "test" or form_data.password != "test":
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
-
-    access_token = create_access_token(data={"sub": form_data.username})
-    return {"access_token": access_token, "token_type": "bearer"}
-
-# Protected route example
-@app.get("/users/me")
-async def read_users_me(current_user: str = Depends(get_current_user)):
-    return {"username": current_user}
+    return cast(User, user)
 ```
 
-### 3. Background Tasks for Scalability
+### 4. API Routes for Users
 
 ```python
-from fastapi import BackgroundTasks, FastAPI
+# app/routes/users.py
+from typing import cast
+from fastapi import APIRouter, Depends, HTTPException
+from sqlmodel import Session, select
+from app.database import get_session
+from app.models import User
 
-app = FastAPI()
+router = APIRouter()
+db_session = Depends(get_session)
 
-def log_action(user: str):
+@router.post("/", response_model=User)
+async def create_user(user: User, session: Session = db_session) -> User:
+    statement = select(User).where(User.email == user.email)
+    existing_user = session.exec(statement).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User already exists")
+
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
+
+@router.get("/{user_id}", response_model=User)
+async def get_user(user_id: int, session: Session = db_session) -> User:
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return cast(User, user)
+```
+
+### 5. Background Tasks for Scalability
+
+```python
+# app/routes/background_tasks.py
+from typing import Dict
+from fastapi import APIRouter, BackgroundTasks
+
+router = APIRouter()
+
+def log_action(user: str) -> None:
     with open("audit.log", "a") as f:
         f.write(f"User {user} performed an action\n")
 
-@app.post("/action/")
-async def perform_action(user: str, background_tasks: BackgroundTasks):
-    # Add the task to the background
+@router.post("/action/")
+async def perform_action(user: str, background_tasks: BackgroundTasks) -> Dict[str, str]:
     background_tasks.add_task(log_action, user)
-    # Return immediately while task runs in background
     return {"message": "Action scheduled"}
+```
+
+### 6. Main Application Setup with Modern Lifespan
+
+```python
+# app/main.py
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from app.database import create_tables, load_test_data
+from app.routes import auth, background_tasks, items, users
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    create_tables()
+    load_test_data()
+    yield
+    # Shutdown (if needed)
+
+app = FastAPI(title="FastAPI Article Demo", lifespan=lifespan)
+app.include_router(users.router, prefix="/users", tags=["Users"])
+app.include_router(items.router, prefix="/items", tags=["Items"])
+app.include_router(auth.router, tags=["Authentication"])
+app.include_router(background_tasks.router, prefix="/tasks", tags=["Background Tasks"])
+
+@app.get("/")
+async def root() -> dict[str, str]:
+    return {"message": "Hello, FastAPI Article Project!"}
 ```
 
 ## Scaling FastAPI in Production
@@ -200,24 +287,50 @@ async def perform_action(user: str, background_tasks: BackgroundTasks):
 Use uvicorn with gunicorn for multi-worker deployments:
 
 ```bash
-gunicorn -k uvicorn.workers.UvicornWorker myapp:app --workers 4
+gunicorn -k uvicorn.workers.UvicornWorker app.main:app --workers 4
 ```
 
-### Containerization
+### Containerization with Docker
 
-FastAPI pairs beautifully with Docker. Here's a simple Dockerfile:
+FastAPI pairs beautifully with Docker. Here's the Dockerfile from our demo project:
 
 ```dockerfile
-FROM python:3.9
+FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy dependency files
+COPY pyproject.toml uv.lock ./
 
+# Install uv for fast package management
+RUN pip install uv
+
+# Install dependencies
+RUN uv pip install --system -e .
+
+# Copy application code
 COPY . .
 
+# Expose port
+EXPOSE 8000
+
+# Command to run the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+### Modern Package Management with uv
+
+This project uses [uv](https://github.com/astral-sh/uv) for ultra-fast package management:
+
+```bash
+# Install dependencies
+uv pip install -e ".[dev]"
+
+# Run the application
+uv run uvicorn app.main:app --reload
+
+# Run tests
+uv run pytest
 ```
 
 ### Observability
@@ -238,6 +351,7 @@ async def startup():
 - Implement proper JWT authentication with token expiration
 - Use Pydantic for input validation and sanitization
 - Set up rate limiting with a middleware or API gateway
+- Store secrets in environment variables, not in code
 
 ### Async Pitfalls to Avoid
 
@@ -245,6 +359,7 @@ async def startup():
 - Use `httpx` instead of `requests` for HTTP calls
 - Consider `asyncpg` for database operations
 - Be careful with CPU-intensive tasks; they can block the event loop
+- Avoid calling `Depends()` directly in function parameters (use module-level variables)
 
 ---
 
@@ -254,6 +369,8 @@ FastAPI is not just "fast" in benchmarks — it's fast to develop with, safe to 
 
 If you're building microservices, exposing ML models, or modernizing legacy APIs, FastAPI deserves a serious look. Its combination of modern Python features, performance, and developer experience make it a top choice for new API projects in 2025.
 
+The complete source code for all examples in this article is available at [FastAPI Article Demo](https://github.com/wallaceespindola/fastapi-article-demo), including proper project structure, testing, and deployment configurations.
+
 ---
 
 ## References
@@ -261,8 +378,9 @@ If you're building microservices, exposing ML models, or modernizing legacy APIs
 - [FastAPI Official Documentation](https://fastapi.tiangolo.com/)
 - [Starlette Documentation](https://www.starlette.io/)
 - [Pydantic Documentation](https://docs.pydantic.dev/latest/)
-- [Swagger Documentation](https://swagger.io/)
-- [Redoc Documentation](https://redocly.com/docs/redoc)
+- [SQLModel Documentation](https://sqlmodel.tiangolo.com/)
+- [uv Package Manager](https://github.com/astral-sh/uv)
+- [Demo Project Repository](https://github.com/wallaceespindola/fastapi-article-demo)
 
 ---
 

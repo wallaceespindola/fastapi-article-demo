@@ -69,7 +69,16 @@ fastapi-article-demo/
    source .venv/bin/activate  # On Windows, use: .venv\Scripts\activate
    ```
 
-4. Install dependencies using uv:
+4. Set up environment variables:
+   ```bash
+   # Copy the example environment file
+   cp .env.example .env
+
+   # Edit .env file and update the SECRET_KEY with a secure random string
+   # You can generate one with: openssl rand -hex 32
+   ```
+
+5. Install dependencies using uv:
    ```bash
    # Install all dependencies including development tools
    uv pip install -e ".[dev]"
@@ -77,6 +86,19 @@ fastapi-article-demo/
    # For production only dependencies
    uv pip install -e .
    ```
+
+## Environment Variables
+
+This project uses environment variables for configuration. Create a `.env` file based on `.env.example`:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SECRET_KEY` | JWT secret key (REQUIRED) | None |
+| `DATABASE_URL` | Database connection URL | `sqlite:///./test.db` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT token expiration | `30` |
+| `ALGORITHM` | JWT signing algorithm | `HS256` |
+
+**Security Note**: Never commit your `.env` file to version control. Always generate a secure random SECRET_KEY for production.
 
 ## Development Commands
 
