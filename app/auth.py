@@ -6,44 +6,30 @@ from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from sqlmodel import Session, select
 
 from app.database import get_session
 from app.models import User
+from app.security import verify_password
 
 # Load environment variables
 load_dotenv()
 
 # Security constants from environment variables
-SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY:
+_secret_key = os.getenv("SECRET_KEY")
+if not _secret_key:
     raise ValueError("SECRET_KEY environment variable is required")
 
+SECRET_KEY: str = _secret_key
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
-
-# Password context for hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # OAuth2 scheme for token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-# Define dependencies at module level
+# Define dependencies at module level to avoid B008 ruff error
 token_dependency = Depends(oauth2_scheme)
 db_session = Depends(get_session)
-
-
-# Verify password
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    result = pwd_context.verify(plain_password, hashed_password)
-    return cast(bool, result)
-
-
-# Get password hash
-def get_password_hash(password: str) -> str:
-    result = pwd_context.hash(password)
-    return cast(str, result)
 
 
 # Authenticate user

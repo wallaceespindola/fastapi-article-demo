@@ -36,7 +36,7 @@ client = TestClient(app)
 def test_root() -> None:
     response = client.get("/")
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"message": "Hello, FastAPI Article Project!"}
+    assert response.json() == {"message": "Hello, FastAPI Demo Project!"}
 
 
 def test_create_user() -> None:

@@ -1,9 +1,4 @@
-from typing import TypeVar
-
 from sqlmodel import Field, SQLModel
-
-# Create a type variable for SQLModel
-T = TypeVar("T", bound="SQLModel")
 
 
 class User(SQLModel, table=True):  # type: ignore[call-arg]

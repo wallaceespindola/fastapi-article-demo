@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from sqlmodel import Session, SQLModel, create_engine, select
 
 from app.models import Item, User
+from app.security import get_password_hash
 
 # Load environment variables
 load_dotenv()
@@ -27,9 +28,6 @@ def get_session() -> Generator[Session, None, None]:
 
 # Load test data
 def load_test_data() -> None:
-    # Import here to avoid circular import
-    from app.auth import get_password_hash  # noqa: PLC0415
-
     with Session(engine) as session:
         # Check if test data already exists
         existing_users = session.exec(select(User)).all()
