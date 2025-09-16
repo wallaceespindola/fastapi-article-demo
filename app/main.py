@@ -25,4 +25,4 @@ app.include_router(background_tasks.router, prefix="/tasks", tags=["Background T
 
 @app.get("/")
 async def root() -> dict[str, str]:
-    return {"message": "Hello, FastAPI Article Project!"}
+    return {"message": "Hello, FastAPI Demo Project!"}

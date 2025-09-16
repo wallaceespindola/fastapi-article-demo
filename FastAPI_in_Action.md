@@ -70,7 +70,7 @@ WebSockets in Starlette mean you can build chat apps, dashboards, or streaming p
 
 ## Practical Code Examples
 
-The following examples are taken from a complete FastAPI project that demonstrates all the concepts covered in this article. You can find the full implementation at [FastAPI Article Demo](https://github.com/wallaceespindola/fastapi-article-demo).
+The following examples are taken from a complete FastAPI project that demonstrates all the concepts covered in this article. You can find the full implementation at [FastAPI Demo](https://github.com/wallaceespindola/fastapi-article-demo).
 
 ### 1. Data Models with SQLModel
 
@@ -269,7 +269,7 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown (if needed)
 
-app = FastAPI(title="FastAPI Article Demo", lifespan=lifespan)
+app = FastAPI(title="FastAPI Demo Project", lifespan=lifespan)
 app.include_router(users.router, prefix="/users", tags=["Users"])
 app.include_router(items.router, prefix="/items", tags=["Items"])
 app.include_router(auth.router, tags=["Authentication"])
@@ -277,7 +277,7 @@ app.include_router(background_tasks.router, prefix="/tasks", tags=["Background T
 
 @app.get("/")
 async def root() -> dict[str, str]:
-    return {"message": "Hello, FastAPI Article Project!"}
+    return {"message": "Hello, FastAPI Demo Project!"}
 ```
 
 ## Scaling FastAPI in Production
@@ -369,7 +369,7 @@ FastAPI is not just "fast" in benchmarks — it's fast to develop with, safe to 
 
 If you're building microservices, exposing ML models, or modernizing legacy APIs, FastAPI deserves a serious look. Its combination of modern Python features, performance, and developer experience make it a top choice for new API projects in 2025.
 
-The complete source code for all examples in this article is available at [FastAPI Article Demo](https://github.com/wallaceespindola/fastapi-article-demo), including proper project structure, testing, and deployment configurations.
+The complete source code for all examples in this article is available at [FastAPI Demo](https://github.com/wallaceespindola/fastapi-article-demo), including proper project structure, testing, and deployment configurations.
 
 ---
 
