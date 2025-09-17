@@ -1,4 +1,4 @@
-![Python](https://www.python.org/static/community_logos/python-logo-generic.svg)
+![FastAPI Logo](resources/fastapi_logo.png)
 
 # FastAPI Article Demo
 
